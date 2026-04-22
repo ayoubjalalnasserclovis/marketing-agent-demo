@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stoniz AI Marketing Team</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Stoniz AI Marketing Team</h1>
+        <p>Operational strategy commanded by intelligent agents.</p>
+    </header>
+
+    <main>
+        <section class="agents-grid">
+            <div class="agent-card" id="agent-pm">
+                <div class="glow"></div>
+                <h3>Project Manager</h3>
+                <p>Coordinates tasks, prioritizes actions, and assigns work.</p>
+                <div class="status">Idle</div>
+            </div>
+            
+            <div class="agent-card" id="agent-cm">
+                <div class="glow"></div>
+                <h3>Content Manager</h3>
+                <p>Defines content strategy, scripts, and editorial calendar.</p>
+                <div class="status">Idle</div>
+            </div>
+
+            <div class="agent-card" id="agent-rw">
+                <div class="glow"></div>
+                <h3>Rédacteur Web</h3>
+                <p>Produces SEO-optimized long-form content and resources.</p>
+                <div class="status">Idle</div>
+            </div>
+
+            <div class="agent-card" id="agent-da">
+                <div class="glow"></div>
+                <h3>Data Analyst</h3>
+                <p>Tracks performance, KPIs, and delivers weekly insights.</p>
+                <div class="status">Idle</div>
+            </div>
+        </section>
+
+        <section class="chat-container">
+            <div id="chat-messages" class="messages-area">
+                <div class="message system">
+                    <strong>System:</strong> Welcome. Describe your marketing request below. The Project Manager will evaluate and assign it to the correct agent.
+                </div>
+            </div>
+            <div class="input-area">
+                <textarea id="userInput" placeholder="e.g. Can we generate 3 LinkedIn hook ideas for our new CRM integration?"></textarea>
+                <button id="sendBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <div class="loader-overlay" id="loading">
+        <div class="spinner"></div>
+        <p>Agents are thinking...</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
