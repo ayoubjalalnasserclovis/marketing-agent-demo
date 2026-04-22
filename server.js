@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const { GoogleGenAI } = require('@google/genai');
 require('dotenv').config();
 
 const app = express();
@@ -8,10 +7,39 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Note: If 'gemini-3.1-flash' fails due to invalid model name, fallback to 'gemini-2.5-flash'
-const MODEL_NAME = 'gemini-3.1-flash'; 
+// OpenRouter model identifier for Gemini Flash
+const MODEL_NAME = 'google/gemini-2.5-flash'; 
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+async function callOpenRouter(systemPrompt, userMessage, jsonMode = false) {
+    const body = {
+        model: MODEL_NAME,
+        messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage }
+        ]
+    };
+    
+    if (jsonMode) {
+        body.response_format = { type: "json_object" };
+    }
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`OpenRouter error: ${response.status} - ${errText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+}
 
 const PROMPTS = {
     "Project Manager": `Tu es le Project Manager d'une équipe marketing IA. 
@@ -38,20 +66,15 @@ app.post('/api/chat', async (req, res) => {
         const { message, history } = req.body;
         
         // Step 1: Project Manager evaluates the task
-        const pmResponse = await ai.models.generateContent({
-            model: MODEL_NAME,
-            contents: message,
-            config: {
-                systemInstruction: PROMPTS["Project Manager"],
-                responseMimeType: "application/json"
-            }
-        });
+        const pmText = await callOpenRouter(PROMPTS["Project Manager"], message, true);
         
         let pmData;
         try {
-            pmData = JSON.parse(pmResponse.text);
+            // Sometimes OpenRouter wraps json in markdown code blocks
+            const cleanJson = pmText.replace(/```json/g, "").replace(/```/g, "").trim();
+            pmData = JSON.parse(cleanJson);
         } catch(e) {
-            console.error("Failed to parse PM response", pmResponse.text);
+            console.error("Failed to parse PM response", pmText);
             return res.status(500).json({ error: "PM Router failed to format JSON" });
         }
 
@@ -67,18 +90,12 @@ app.post('/api/chat', async (req, res) => {
 
         // Step 2: Push to the correct underlying agent
         const targetPrompt = PROMPTS[target] || PROMPTS["Project Manager"];
-        const agentResponse = await ai.models.generateContent({
-            model: MODEL_NAME,
-            contents: instruction,
-            config: {
-                systemInstruction: targetPrompt
-            }
-        });
+        const agentText = await callOpenRouter(targetPrompt, instruction, false);
 
         res.json({
             agent: target,
             pm_insight: response,
-            reply: agentResponse.text
+            reply: agentText
         });
 
     } catch (error) {
@@ -88,4 +105,4 @@ app.post('/api/chat', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Marketing Agent Demo running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Marketing Agent Demo running on port ${PORT} using OpenRouter`));
