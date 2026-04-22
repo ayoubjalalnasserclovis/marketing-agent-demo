@@ -7,8 +7,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// OpenRouter model identifier for Gemini Flash
-const MODEL_NAME = 'google/gemini-2.5-flash'; 
+// OpenRouter model identifier for Gemini 3.1 Flash Lite
+const MODEL_NAME = 'google/gemini-3.1-flash-lite-preview'; 
 
 async function callOpenRouter(systemPrompt, userMessage, jsonMode = false) {
     const body = {
