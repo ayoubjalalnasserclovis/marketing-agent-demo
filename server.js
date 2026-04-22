@@ -1,6 +1,16 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
+
+let skillIds = "";
+try {
+    const catalog = JSON.parse(fs.readFileSync(path.join(__dirname, 'skill_catalog.json')));
+    skillIds = catalog.map(s => s.id).join(', ');
+} catch(e) {
+    console.error("Skill catalog missing, run node build-catalog.js");
+}
 
 const app = express();
 app.use(cors());
@@ -37,16 +47,15 @@ async function callOpenRouter(systemPrompt, userMessage, jsonMode = false) {
         throw new Error(`OpenRouter error: ${response.status} - ${errText}`);
     }
 
-    const data = await response.json();
-    return data.choices[0].message.content;
-}
+
 
 const PROMPTS = {
-    "Project Manager": `Tu es le Project Manager d'une équipe marketing IA, basé sur le framework "claude-skills" (domaines: Project Management & C-level Advisor).
-Missions : Orchestrer les campagnes, suivre les tâches de chaque agent, vérifier les deadlines, et gérer les risques via des frameworks de décision stricts. Agis comme un "Solo Founder / PM".
-Ton rôle principal est de recevoir la requête de l'utilisateur, et de déterminer si tu peux y répondre toi-même OU si tu dois la déléguer.
+    "Project Manager": () => `Tu es le Project Manager d'une équipe marketing IA, basé sur le framework "claude-skills".
+Missions : Orchestrer les campagnes, suivre les tâches de chaque agent.
+TU DISPOSES D'UNE LIBRAIRIE DE COMPÉTENCES (SKILLS). Tu dois analyser la requête et décider si tu peux répondre ou si tu dois déléguer.
+Si tu délègues, tu DOIS choisir les compétences spécifiques (0, 1 ou plusieurs) nécessaires à l'agent depuis cette liste exacte : [${skillIds}]. Ne choisis aucune compétence si la tâche est banale.
 RÉPOND IMPÉRATIVEMENT SOUS FORME DE JSON STRICT :
-{"target": "Rédacteur Web" | "Content Manager" | "Data Analyst" | "Project Manager", "instruction": "La tâche formatée (avec contexte et objectifs)", "response": "Ta réponse directe à l'utilisateur"}` ,
+{"target": "Rédacteur Web" | "Content Manager" | "Data Analyst" | "Project Manager", "skills": ["id_du_skill_exact_s_il_y_en_a"], "instruction": "La tâche formatée (avec contexte et objectifs)", "response": "Ta réponse directe à l'utilisateur"}` ,
 
     "Content Manager": `Tu es le Content Manager & Growth Marketer (intégrant les modules "marketing-skill" et "business-growth" de claude-skills). 
 Missions : Définir le calendrier éditorial, gérer la stratégie de croissance, proposer des hooks viraux et créer des scripts de contenu A/B testables.
@@ -72,7 +81,7 @@ app.post('/api/chat', async (req, res) => {
         const { message, history } = req.body;
         
         // Step 1: Project Manager evaluates the task
-        const pmText = await callOpenRouter(PROMPTS["Project Manager"], message, true);
+        const pmText = await callOpenRouter(PROMPTS["Project Manager"](), message, true);
         
         let pmData;
         try {
@@ -84,7 +93,7 @@ app.post('/api/chat', async (req, res) => {
             return res.status(500).json({ error: "PM Router failed to format JSON" });
         }
 
-        const { target, instruction, response } = pmData;
+        const { target, instruction, response, skills } = pmData;
 
         // If the PM is handling it directly
         if (target === "Project Manager") {
@@ -94,8 +103,19 @@ app.post('/api/chat', async (req, res) => {
             });
         }
 
-        // Step 2: Push to the correct underlying agent
-        const targetPrompt = PROMPTS[target] || PROMPTS["Project Manager"];
+        // Step 2: Push to the correct underlying agent with Agentic RAG
+        let targetPrompt = PROMPTS[target] || PROMPTS["Rédacteur Web"];
+        
+        // Inject physical SKILL.md rules if the PM selected any
+        if (skills && Array.isArray(skills) && skills.length > 0) {
+            for (const s of skills) {
+                const p = path.join(__dirname, 'claude-skills', s, 'SKILL.md');
+                if (fs.existsSync(p)) {
+                    targetPrompt += "\n\n--- REQUIRED SKILL INJECTED: " + s + " ---\n" + fs.readFileSync(p, 'utf-8');
+                }
+            }
+        }
+
         const agentText = await callOpenRouter(targetPrompt, instruction, false);
 
         res.json({
