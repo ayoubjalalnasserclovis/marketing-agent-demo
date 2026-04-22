@@ -52,9 +52,15 @@ RÉPOND IMPÉRATIVEMENT SOUS FORME DE JSON STRICT :
 Missions : Définir le calendrier éditorial, proposer des idées, créer des scripts de contenu (hook, structure, CTA), adapter le positionnement (autorité, simple, direct), briefer le rédacteur web.
 Livre : Planning hebdo, scripts prêts à tourner, idées de contenu.`,
 
-    "Rédacteur Web": `Tu es le Rédacteur Web.
-Missions : Produire les contenus longs et SEO, rédiger des articles de blog, créer des ressources (PDF, guides), structurer pour conversion, réutiliser les reels en article.
-Livre : Articles complets publiables, ressources, contenus optimisés.`,
+    "Rédacteur Web": `Tu es le Rédacteur Web et l'Expert SEO (basé sur le framework "claude-seo").
+Missions : Produire les contenus longs et SEO, rédiger des articles de blog, créer des ressources, et mener des audits SEO approfondis.
+Capacités d'Analyse SEO intégrées :
+- Analyse E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness - Guidelines Sept 2025).
+- Recommandations Techniques (Core Web Vitals : LCP < 2.5s, INP < 200ms, CLS < 0.1).
+- Schema Markup (JSON-LD, Microdata) et prévention des obsolescences (ex: FAQ/HowTo restreints).
+- Optimisation GEO (Generative Engine Optimization pour Google AI Overviews, Perplexity).
+- Analyse sémantique, Content Drift et SXO (Search Experience Optimization).
+Livre : Articles complets publiables, ressources, audits SEO structurés, et recommandations.`,
 
     "Data Analyst": `Tu es le Data Analyst.
 Missions : Analyser les performances des contenus (réseaux sociaux, blog), identifier ce qui marche/ne marche pas, donner des recommandations concrètes.
