@@ -36,9 +36,53 @@ function addMessage(text, type, agentName = null) {
         el.appendChild(title);
     }
     
-    // Add text formatting (simple line breaks)
     const content = document.createElement('div');
-    content.innerHTML = text.replace(/\\n/g, '<br/>');
+    content.className = 'markdown-body';
+    
+    if (type === 'agent' || type === 'system') {
+        content.innerHTML = marked.parse(text);
+        
+        // Find code blocks and add download buttons
+        content.querySelectorAll('pre code').forEach((codeBlock) => {
+            const pre = codeBlock.parentElement;
+            
+            let lang = 'txt';
+            codeBlock.classList.forEach(cls => {
+                if(cls.startsWith('language-')) {
+                    lang = cls.replace('language-', '');
+                }
+            });
+            const extMap = { 'markdown': 'md', 'javascript': 'js', 'json': 'json', 'html': 'html', 'csv': 'csv' };
+            const ext = extMap[lang] || lang;
+            
+            const btn = document.createElement('button');
+            btn.className = 'download-btn';
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download .${ext}`;
+            
+            btn.onclick = () => {
+                const blob = new Blob([codeBlock.textContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `agent_output_${Date.now()}.${ext}`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+            
+            const header = document.createElement('div');
+            header.className = 'code-header';
+            
+            const langLabel = document.createElement('span');
+            langLabel.textContent = lang;
+            
+            header.appendChild(langLabel);
+            header.appendChild(btn);
+            
+            pre.parentNode.insertBefore(header, pre);
+        });
+    } else {
+        content.textContent = text;
+    }
     el.appendChild(content);
     
     chatMessages.appendChild(el);
