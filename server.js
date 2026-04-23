@@ -46,8 +46,9 @@ async function callOpenRouter(systemPrompt, userMessage, jsonMode = false) {
         const errText = await response.text();
         throw new Error(`OpenRouter error: ${response.status} - ${errText}`);
     }
-
-
+    const data = await response.json();
+    return data.choices[0].message.content;
+}
 
 const PROMPTS = {
     "Project Manager": () => `Tu es le Project Manager d'une équipe marketing IA, basé sur le framework "claude-skills".
