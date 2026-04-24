@@ -89,6 +89,8 @@ function addMessage(text, type, agentName = null) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+let chatHistory = [];
+
 async function sendMessage() {
     const text = userInput.value.trim();
     if (!text) return;
@@ -103,7 +105,7 @@ async function sendMessage() {
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text }) // Pass history here in V2
+            body: JSON.stringify({ message: text, history: chatHistory }) 
         });
 
         const data = await response.json();
@@ -115,6 +117,8 @@ async function sendMessage() {
             setAgentActive(null);
             return;
         }
+        
+        chatHistory.push({ role: 'user', content: text });
 
         // Output PM insight if it delegated the task
         if (data.pm_insight && data.agent !== "Project Manager") {
@@ -125,12 +129,16 @@ async function sendMessage() {
                 setAgentActive(data.agent);
                 setTimeout(() => {
                     addMessage(data.reply, 'agent', data.agent);
+                    chatHistory.push({ role: 'assistant', content: data.reply });
+                    if (chatHistory.length > 8) chatHistory.splice(0, 2); // Keep last 4 interactions
                     setTimeout(() => setAgentActive(null), 2000);
                 }, 500);
             }, 1000);
         } else {
             // Handled completely by PM
             addMessage(data.reply, 'agent', data.agent);
+            chatHistory.push({ role: 'assistant', content: data.reply });
+            if (chatHistory.length > 8) chatHistory.splice(0, 2);
             setTimeout(() => setAgentActive(null), 2000);
         }
 

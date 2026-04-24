@@ -20,13 +20,18 @@ app.use(express.static('public'));
 // OpenRouter model identifier for Gemini 3.1 Flash Lite
 const MODEL_NAME = 'google/gemini-3.1-flash-lite-preview'; 
 
-async function callOpenRouter(systemPrompt, userMessage, jsonMode = false) {
+async function callOpenRouter(systemPrompt, userMessage, jsonMode = false, history = []) {
+    const messages = [ { role: "system", content: systemPrompt } ];
+    
+    // Append conversation history
+    if (history && Array.isArray(history)) {
+        messages.push(...history);
+    }
+    messages.push({ role: "user", content: userMessage });
+
     const body = {
         model: MODEL_NAME,
-        messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userMessage }
-        ]
+        messages: messages
     };
     
     if (jsonMode) {
@@ -124,7 +129,7 @@ app.post('/api/chat', async (req, res) => {
         const { message, history } = req.body;
         
         // Step 1: Project Manager evaluates the task
-        const pmText = await callOpenRouter(PROMPTS["Project Manager"](), message, true);
+        const pmText = await callOpenRouter(PROMPTS["Project Manager"](), message, true, history);
         
         let pmData;
         try {
@@ -159,7 +164,7 @@ app.post('/api/chat', async (req, res) => {
             }
         }
 
-        let agentText = await callOpenRouter(targetPrompt, instruction, false);
+        let agentText = await callOpenRouter(targetPrompt, instruction, false, history);
 
         // Intercept and auto-generate KIE images
         const imgRegex = /\[GENERATE_IMAGE:\s*"?([^"\]]+)"?\s*\]/g;
