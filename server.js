@@ -48,6 +48,8 @@ async function callOpenRouter(systemPrompt, userMessage, jsonMode = false) {
     }
     const data = await response.json();
     return data.choices[0].message.content;
+}
+
 async function generateKieImage(prompt) {
     try {
         const createRes = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
