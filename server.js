@@ -58,7 +58,7 @@ async function generateKieImage(prompt) {
             },
             body: JSON.stringify({
                 "model": "gpt-image-2-text-to-image",
-                "input": { "prompt": prompt, "aspect_ratio": "auto" }
+                "input": { "prompt": prompt, "aspect_ratio": "auto", "resolution": "1K" }
             })
         });
         const createData = await createRes.json();
@@ -86,7 +86,7 @@ async function generateKieImage(prompt) {
     }
 }
 
-const STONIZ_CONTEXT = `CONTEXTE ENTREPRISE: Tu travailles pour Stoniz (stoniz.co). Stoniz démocratise l'investissement immobilier au Maroc. Offres : Rénovation de A à Z clé en main (villas, riads, apparts), investissement locatif courte durée avec conciergerie interne, investissement fractionné à plusieurs, et obligations dès 100€. Cibles : Investisseurs, expatriés, MRE. Arguments : Coupe d'Afrique 2025, Coupe du Monde 2030, rendements attractifs. Toute ta stratégie doit servir la croissance de Stoniz.`;
+const STONIZ_CONTEXT = `CONTEXTE ENTREPRISE: Tu travailles pour Stoniz (stoniz.co). Stoniz démocratise l'investissement immobilier au Maroc. Offres : Rénovation de A à Z clé en main (villas, riads, apparts), investissement locatif courte durée avec conciergerie interne, investissement fractionné à plusieurs, et obligations dès 100€. Cibles : Investisseurs, expatriés, MRE. Arguments : Coupe d'Afrique 2025, Coupe du Monde 2030, rendements attractifs. Toute ta stratégie doit servir la croissance de Stoniz. IMPORTANCE CAPITALE : Toutes tes publications, textes et posts doivent être SPÉCIFIQUEMENT ET EXCLUSIVEMENT taillés pour Stoniz et ses offres. Pas de généralités génériques sur l'immobilier, cite l'entreprise et ses offres spécifiques.`;
 
 const PROMPTS = {
     "Project Manager": () => `${STONIZ_CONTEXT}\nTu es le Project Manager d'une équipe marketing IA, basé sur le framework "claude-skills".
