@@ -48,6 +48,42 @@ async function callOpenRouter(systemPrompt, userMessage, jsonMode = false) {
     }
     const data = await response.json();
     return data.choices[0].message.content;
+async function generateKieImage(prompt) {
+    try {
+        const createRes = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer b47967b4f41b450df9cf9bd41aac166e',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                "model": "gpt-image-2-text-to-image",
+                "input": { "prompt": prompt, "aspect_ratio": "auto" }
+            })
+        });
+        const createData = await createRes.json();
+        if (createData.code !== 200) return `[Erreur KIE Génération: ${createData.msg}]`;
+        
+        const taskId = createData.data.taskId;
+        
+        for (let i = 0; i < 20; i++) {
+            await new Promise(r => setTimeout(r, 3000));
+            const pollRes = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
+                headers: { 'Authorization': 'Bearer b47967b4f41b450df9cf9bd41aac166e' }
+            });
+            const pollData = await pollRes.json();
+            
+            if (pollData.data && pollData.data.status === 'SUCCESS') {
+                const imgUrl = pollData.data.imageUrl || pollData.data.url || (pollData.data.response && pollData.data.response.image_url) || (pollData.data.result && pollData.data.result.url) || pollData.data.result;
+                return `![Image Client Générée KIE](${imgUrl})`;
+            } else if (pollData.data && pollData.data.status === 'FAIL') {
+                return `[Erreur: Échec génération d'image]`;
+            }
+        }
+        return `[Erreur: Timeout lors de la génération d'image]`;
+    } catch(e) {
+        return `[Erreur Serveur: ${e.message}]`;
+    }
 }
 
 const STONIZ_CONTEXT = `CONTEXTE ENTREPRISE: Tu travailles pour Stoniz (stoniz.co). Stoniz démocratise l'investissement immobilier au Maroc. Offres : Rénovation de A à Z clé en main (villas, riads, apparts), investissement locatif courte durée avec conciergerie interne, investissement fractionné à plusieurs, et obligations dès 100€. Cibles : Investisseurs, expatriés, MRE. Arguments : Coupe d'Afrique 2025, Coupe du Monde 2030, rendements attractifs. Toute ta stratégie doit servir la croissance de Stoniz.`;
@@ -61,9 +97,11 @@ RÉPOND IMPÉRATIVEMENT SOUS FORME DE JSON STRICT :
 {"target": "Rédacteur Web" | "Content Manager" | "Data Analyst" | "Project Manager", "skills": ["id_du_skill_exact_s_il_y_en_a"], "instruction": "La tâche formatée (avec contexte et objectifs)", "response": "Ta réponse directe à l'utilisateur"}` ,
 
     "Content Manager": `${STONIZ_CONTEXT}\nTu es le Content Manager & Growth Marketer (intégrant les modules "marketing-skill" et "business-growth" de claude-skills). 
-Missions : Définir le calendrier éditorial, gérer la stratégie de croissance, proposer des hooks viraux et créer des scripts de contenu A/B testables.
-Utilise des frameworks de Growth Hacking (AARRR, ICE scoring) pour adapter le positionnement.
-Livre : Planning hebdo, scripts prêts à tourner, matrices de contenu stratégique.`,
+Missions : Définir le calendrier éditorial, gérer la stratégie de croissance, proposer des hooks viraux et créer des scripts.
+NOUVELLE CAPACITÉ : Tu peux générer des images HD pour les posts. Pour générer une image, tu DOIS insérer exactement la balise suivante sur une ligne séparée :
+[GENERATE_IMAGE: "Ta description extrêmement détaillée de l'image en anglais"]
+Le système remplacera automatiquement cette balise par l'image générée. Utilise cette balise chaque fois que tu crées un post ou une publication.
+Livre : Planning hebdo, scripts prêts à tourner, matrices de contenu avec balises d'images.`,
 
     "Rédacteur Web": `${STONIZ_CONTEXT}\nTu es le Rédacteur Web, Copywriter DRP (Direct Response Copywriting) et l'Expert SEO (basé sur "claude-seo" et "claude-skills").
 Missions : Produire les contenus longs et SEO, rédiger des articles, landing pages.
@@ -119,8 +157,18 @@ app.post('/api/chat', async (req, res) => {
             }
         }
 
-        const agentText = await callOpenRouter(targetPrompt, instruction, false);
+        let agentText = await callOpenRouter(targetPrompt, instruction, false);
 
+        // Intercept and auto-generate KIE images
+        const imgRegex = /\[GENERATE_IMAGE:\s*"?([^"\]]+)"?\s*\]/g;
+        let match;
+        // Generate images sequentially to avoid overwhelming the API
+        while ((match = imgRegex.exec(agentText)) !== null) {
+            const imgPrompt = match[1];
+            console.log("KIE API Triggered - Generating Image:", imgPrompt);
+            const imgMarkdown = await generateKieImage(imgPrompt);
+            agentText = agentText.replace(match[0], imgMarkdown);
+        }
         res.json({
             agent: target,
             pm_insight: response,
