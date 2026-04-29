@@ -184,11 +184,11 @@ app.post('/api/chat', async (req, res) => {
         let agentText = await callOpenRouter(targetPrompt, instruction, false, history);
 
         // Intercept and auto-generate KIE images
-        const imgRegex = /\[GENERATE_IMAGE:\s*"?([^"\]]+)"?\s*\]/g;
+        const imgRegex = /\[GENERATE_IMAGE:\s*(.*?)\]/g;
         let match;
         // Generate images sequentially to avoid overwhelming the API
         while ((match = imgRegex.exec(agentText)) !== null) {
-            const imgPrompt = match[1];
+            const imgPrompt = match[1].replace(/["']/g, "").trim();
             console.log("KIE API Triggered - Generating Image:", imgPrompt);
             const imgMarkdown = await generateKieImage(imgPrompt);
             agentText = agentText.replace(match[0], imgMarkdown);

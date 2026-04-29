@@ -78,8 +78,45 @@ function addMessage(text, type, agentName = null) {
             header.appendChild(langLabel);
             header.appendChild(btn);
             
+            
             pre.parentNode.insertBefore(header, pre);
         });
+
+        // Find images and make them distinctly downloadable
+        content.querySelectorAll('img').forEach((img) => {
+            const container = document.createElement('div');
+            container.style.position = 'relative';
+            container.style.display = 'inline-block';
+            container.style.marginTop = '1rem';
+            container.style.marginBottom = '1rem';
+            container.style.width = '100%';
+            
+            img.parentNode.insertBefore(container, img);
+            container.appendChild(img);
+            
+            img.style.width = '100%';
+            img.style.borderRadius = '8px';
+            img.style.display = 'block';
+            
+            const btn = document.createElement('a');
+            btn.className = 'download-btn';
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download HD Image`;
+            btn.href = img.src;
+            btn.target = '_blank';
+            btn.download = 'stoniz_generated_image.png';
+            btn.style.position = 'absolute';
+            btn.style.bottom = '12px';
+            btn.style.right = '12px';
+            btn.style.background = 'rgba(15, 23, 42, 0.85)';
+            btn.style.border = '1px solid #38bdf8';
+            btn.style.padding = '8px 14px';
+            btn.style.textDecoration = 'none';
+            btn.style.fontWeight = '600';
+            btn.style.backdropFilter = 'blur(4px)';
+            
+            container.appendChild(btn);
+        });
+
     } else {
         content.textContent = text;
     }
