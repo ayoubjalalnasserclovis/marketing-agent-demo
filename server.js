@@ -4,6 +4,10 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+const { createClient } = require('@supabase/supabase-js');
+const supabaseUrl = 'https://mhdfeboztkvgijlnahcw.supabase.co';
+const supabaseKey = 'sb_publishable_XYCBKq8aKnOJ5EfiLOL-bQ_Chdzmx55';
+const supabase = createClient(supabaseUrl, supabaseKey);
 let skillIds = "";
 try {
     const catalog = JSON.parse(fs.readFileSync(path.join(__dirname, 'skill_catalog.json')));
@@ -126,7 +130,20 @@ Livre : Reporting hebdo, Top contenus, et recommandations DATA-DRIVEN actionnabl
 
 app.post('/api/chat', async (req, res) => {
     try {
-        const { message, history } = req.body;
+        const { message, sessionId } = req.body;
+        
+        let history = [];
+        if (sessionId) {
+            const { data, error } = await supabase
+                .from('conversations')
+                .select('role, content')
+                .eq('session_id', sessionId)
+                .order('created_at', { ascending: true })
+                .limit(10);
+            if (data && !error) {
+                history = data;
+            }
+        }
         
         // Step 1: Project Manager evaluates the task
         const pmText = await callOpenRouter(PROMPTS["Project Manager"](), message, true, history);
@@ -176,6 +193,14 @@ app.post('/api/chat', async (req, res) => {
             const imgMarkdown = await generateKieImage(imgPrompt);
             agentText = agentText.replace(match[0], imgMarkdown);
         }
+
+        if (sessionId) {
+            await supabase.from('conversations').insert([
+                { session_id: sessionId, role: 'user', content: message },
+                { session_id: sessionId, role: 'assistant', content: agentText }
+            ]);
+        }
+
         res.json({
             agent: target,
             pm_insight: response,
