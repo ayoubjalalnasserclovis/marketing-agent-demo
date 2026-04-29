@@ -77,21 +77,34 @@ async function generateKieImage(prompt) {
         
         const taskId = createData.data.taskId;
         
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 30; i++) {
             await new Promise(r => setTimeout(r, 3000));
             const pollRes = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
                 headers: { 'Authorization': 'Bearer b47967b4f41b450df9cf9bd41aac166e' }
             });
             const pollData = await pollRes.json();
             
-            if (pollData.data && pollData.data.status === 'SUCCESS') {
-                const imgUrl = pollData.data.imageUrl || pollData.data.url || (pollData.data.response && pollData.data.response.image_url) || (pollData.data.result && pollData.data.result.url) || pollData.data.result;
-                return `![Image Client Générée KIE](${imgUrl})`;
-            } else if (pollData.data && pollData.data.status === 'FAIL') {
-                return `[Erreur: Échec génération d'image]`;
+            if (pollData.data) {
+                const state = pollData.data.state;
+                if (state === 'success') {
+                    let imgUrl = "";
+                    if (pollData.data.resultJson) {
+                        try {
+                            const parsed = JSON.parse(pollData.data.resultJson);
+                            if (parsed.resultUrls && parsed.resultUrls.length > 0) {
+                                imgUrl = parsed.resultUrls[0];
+                            }
+                        } catch(e) {}
+                    }
+                    if (!imgUrl) imgUrl = pollData.data.imageUrl || pollData.data.url;
+                    
+                    return `![Image Client Générée KIE](${imgUrl})`;
+                } else if (state === 'fail' || state === 'failed') {
+                    return `[Erreur: Échec génération d'image - ${pollData.data.failMsg || 'Inconnu'}]`;
+                }
             }
         }
-        return `[Erreur: Timeout lors de la génération d'image]`;
+        return `[Erreur: Timeout lors de la génération d'image après 90s]`;
     } catch(e) {
         return `[Erreur Serveur: ${e.message}]`;
     }
