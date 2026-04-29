@@ -185,12 +185,17 @@ app.post('/api/chat', async (req, res) => {
         // Intercept and auto-generate KIE images
         const imgRegex = /\[GENERATE_IMAGE:\s*(.*?)\]/g;
         let match;
-        // Generate images sequentially to avoid overwhelming the API
+        const matches = [];
         while ((match = imgRegex.exec(agentText)) !== null) {
-            const imgPrompt = match[1].replace(/["']/g, "").trim();
+            matches.push({ full: match[0], prompt: match[1] });
+        }
+        
+        // Generate images sequentially to avoid overwhelming the API
+        for (const m of matches) {
+            const imgPrompt = m.prompt.replace(/["']/g, "").trim();
             console.log("KIE API Triggered - Generating Image:", imgPrompt);
             const imgMarkdown = await generateKieImage(imgPrompt);
-            agentText = agentText.replace(match[0], imgMarkdown);
+            agentText = agentText.replace(m.full, `\n\n${imgMarkdown}\n\n`);
         }
 
         if (sessionId) {
