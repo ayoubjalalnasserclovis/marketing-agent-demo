@@ -114,8 +114,9 @@ async function generateKieImage(prompt) {
 }
 
 const STONIZ_CONTEXT = `CONTEXTE ENTREPRISE: Tu travailles pour Stoniz (stoniz.co). Stoniz démocratise l'investissement immobilier au Maroc. Offres : Rénovation de A à Z clé en main (villas, riads, apparts), investissement locatif courte durée avec conciergerie interne, investissement fractionné à plusieurs, et obligations dès 100€. Cibles : Investisseurs, expatriés, MRE. Arguments : Coupe d'Afrique 2025, Coupe du Monde 2030, rendements attractifs. Toute ta stratégie doit servir la croissance de Stoniz. IMPORTANCE CAPITALE : Toutes tes publications, textes et posts doivent être SPÉCIFIQUEMENT ET EXCLUSIVEMENT taillés pour Stoniz et ses offres. Pas de généralités génériques sur l'immobilier, cite l'entreprise et ses offres spécifiques.
+RÈGLE D'OR DE RÉDACTION : Ne jamais poster de contenu "IA générique" (slop). Agis toujours comme un véritable humain expert. Utilise des mots simples, des phrases courtes et percutantes. Pas de jargon lourd, pas d'emojis excessifs.
 CAPACITÉ DE GÉNÉRATION D'IMAGES : Tu PEUX générer des images pour accompagner tes contenus. Pour générer une image, tu DOIS écrire exactement cette balise sur une ligne séparée :
-[GENERATE_IMAGE: "Ta description de l'image en anglais"]`;
+[GENERATE_IMAGE: "Ta description de l'image en anglais. RÈGLE STRICTE: Les images doivent TOUJOURS être hyper-réalistes, photographiques, 8k, architecturales. Jamais de dessins, jamais d'illustrations 3D ou cartoons."]`;
 
 const PROMPTS = {
     "Project Manager": () => `${STONIZ_CONTEXT}\nTu es le Project Manager d'une équipe marketing IA, basé sur le framework "claude-skills".
@@ -190,7 +191,10 @@ app.post('/api/chat', async (req, res) => {
         // Inject physical SKILL.md rules if the PM selected any
         if (skills && Array.isArray(skills) && skills.length > 0) {
             for (const s of skills) {
-                const p = path.join(__dirname, 'claude-skills', s, 'SKILL.md');
+                let p = path.join(__dirname, 'custom-skills', s, 'SKILL.md');
+                if (!fs.existsSync(p)) {
+                    p = path.join(__dirname, 'claude-skills', s, 'SKILL.md');
+                }
                 if (fs.existsSync(p)) {
                     targetPrompt += "\n\n--- REQUIRED SKILL INJECTED: " + s + " ---\n" + fs.readFileSync(p, 'utf-8');
                 }

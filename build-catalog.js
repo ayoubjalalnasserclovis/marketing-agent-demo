@@ -63,6 +63,18 @@ try {
             scanDomain(path.join(SKILLS_DIR, item.name));
         }
     }
+    
+    // Also scan custom-skills
+    const CUSTOM_DIR = path.join(__dirname, 'custom-skills');
+    if (fs.existsSync(CUSTOM_DIR)) {
+        const customContents = fs.readdirSync(CUSTOM_DIR, { withFileTypes: true });
+        for (const item of customContents) {
+            if (item.isDirectory() && !item.name.startsWith('.')) {
+                scanDomain(path.join(CUSTOM_DIR, item.name));
+            }
+        }
+    }
+    
     fs.writeFileSync(CATALOG_PATH, JSON.stringify(catalog, null, 2));
     console.log(`Successfully indexed ${catalog.length} skills to skill_catalog.json`);
 } catch (e) {
