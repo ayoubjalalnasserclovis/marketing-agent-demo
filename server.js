@@ -150,20 +150,45 @@ app.post('/api/chat', async (req, res) => {
         const { message, sessionId } = req.body;
         
         let history = [];
+        let sessionMemory = "";
+        
         if (sessionId) {
+            // Fetch the latest condensed memory
+            const { data: memData } = await supabase
+                .from('conversations')
+                .select('content')
+                .eq('session_id', sessionId)
+                .eq('role', 'memory')
+                .order('created_at', { ascending: false })
+                .limit(1);
+            
+            if (memData && memData.length > 0) {
+                sessionMemory = memData[0].content;
+            }
+
+            // Fetch last 10 messages for sliding window context
             const { data, error } = await supabase
                 .from('conversations')
                 .select('role, content')
                 .eq('session_id', sessionId)
-                .order('created_at', { ascending: true })
+                .neq('role', 'memory')
+                .order('created_at', { ascending: false }) // Get latest 10
                 .limit(10);
+                
             if (data && !error) {
-                history = data;
+                history = data.reverse(); // Reverse to get chronological order
             }
         }
         
+        // Inject Memory into PM and Target Prompt
+        let pmPrompt = PROMPTS["Project Manager"]();
+        if (sessionMemory) {
+            const memoryBlock = `\n\n--- MÉMOIRE À LONG TERME DE LA SESSION ---\nVoici un résumé des conversations passées pour contexte : ${sessionMemory}\n---`;
+            pmPrompt += memoryBlock;
+        }
+
         // Step 1: Project Manager evaluates the task
-        const pmText = await callOpenRouter(PROMPTS["Project Manager"](), message, true, history);
+        const pmText = await callOpenRouter(pmPrompt, message, true, history);
         
         let pmData;
         try {
@@ -200,6 +225,10 @@ app.post('/api/chat', async (req, res) => {
                 }
             }
         }
+        
+        if (sessionMemory) {
+            targetPrompt += `\n\n--- MÉMOIRE À LONG TERME DE LA SESSION ---\nVoici un résumé des conversations passées pour contexte : ${sessionMemory}\n---`;
+        }
 
         let agentText = await callOpenRouter(targetPrompt, instruction, false, history);
 
@@ -231,6 +260,35 @@ app.post('/api/chat', async (req, res) => {
             pm_insight: response,
             reply: agentText
         });
+        
+        // BACKGROUND MEMORY CONDENSER
+        if (sessionId) {
+            (async () => {
+                try {
+                    const { count } = await supabase.from('conversations').select('*', { count: 'exact', head: true })
+                        .eq('session_id', sessionId).neq('role', 'memory');
+                        
+                    if (count && count > 0 && count % 5 === 0) { // Condense every 5 messages
+                        const { data: allMsgs } = await supabase.from('conversations').select('role, content')
+                            .eq('session_id', sessionId).neq('role', 'memory').order('created_at', { ascending: true });
+                            
+                        if (allMsgs) {
+                            const chatLog = allMsgs.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
+                            const memoryPrompt = `Tu es une IA de condensation de mémoire. Voici l'historique complet de ma conversation avec l'utilisateur. 
+Rédige un résumé extrêmement concis (4-5 phrases max) des informations importantes à retenir : contexte de son entreprise, décisions prises, préférences, et état du projet.
+Ne mets pas de blabla. Juste les faits.
+Historique :
+${chatLog}`;
+                            const newSummary = await callOpenRouter("Tu es un optimiseur de mémoire.", memoryPrompt, false, []);
+                            await supabase.from('conversations').insert([
+                                { session_id: sessionId, role: 'memory', content: newSummary }
+                            ]);
+                            console.log("Memory condensed and saved for session:", sessionId);
+                        }
+                    }
+                } catch(e) { console.error("Memory condenser failed", e); }
+            })();
+        }
 
     } catch (error) {
         console.error(error);
