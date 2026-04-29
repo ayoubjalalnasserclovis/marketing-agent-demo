@@ -77,8 +77,11 @@ async function generateKieImage(prompt) {
         
         const taskId = createData.data.taskId;
         
+        // Wait 40 seconds before even checking, to give the model time to generate
+        await new Promise(r => setTimeout(r, 40000));
+        
         for (let i = 0; i < 30; i++) {
-            await new Promise(r => setTimeout(r, 3000));
+            await new Promise(r => setTimeout(r, 4000));
             const pollRes = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
                 headers: { 'Authorization': 'Bearer b47967b4f41b450df9cf9bd41aac166e' }
             });
@@ -119,8 +122,9 @@ const PROMPTS = {
 Missions : Orchestrer les campagnes, suivre les tâches de chaque agent.
 TU DISPOSES D'UNE LIBRAIRIE DE COMPÉTENCES (SKILLS). Tu dois analyser la requête et décider si tu peux répondre ou si tu dois déléguer.
 Si tu délègues, tu DOIS choisir les compétences spécifiques (0, 1 ou plusieurs) nécessaires à l'agent depuis cette liste exacte : [${skillIds}]. Ne choisis aucune compétence si la tâche est banale.
+RÈGLE ABSOLUE : SI TU DÉLÈGUES, TU NE DOIS PAS FAIRE LE TRAVAIL TOI-MÊME DANS TA RÉPONSE ! Ta 'response' doit juste être une brève phrase disant "Je délègue cette tâche au [Agent] avec telle compétence." Le vrai travail sera fait par l'agent.
 RÉPOND IMPÉRATIVEMENT SOUS FORME DE JSON STRICT :
-{"target": "Rédacteur Web" | "Content Manager" | "Data Analyst" | "Project Manager", "skills": ["id_du_skill_exact_s_il_y_en_a"], "instruction": "La tâche formatée (avec contexte et objectifs)", "response": "Ta réponse directe à l'utilisateur"}` ,
+{"target": "Rédacteur Web" | "Content Manager" | "Data Analyst" | "Project Manager", "skills": ["id_du_skill_exact_s_il_y_en_a"], "instruction": "La tâche formatée (avec contexte et objectifs)", "response": "Ton accusé de réception ultra-court"}` ,
 
     "Content Manager": `${STONIZ_CONTEXT}\nTu es le Content Manager & Growth Marketer (intégrant les modules "marketing-skill" et "business-growth" de claude-skills). 
 Missions : Définir le calendrier éditorial, gérer la stratégie de croissance, proposer des hooks viraux et créer des scripts.
