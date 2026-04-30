@@ -64,7 +64,7 @@ async function generateKieImage(prompt) {
         const createRes = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
             method: 'POST',
             headers: {
-                'Authorization': 'Bearer b47967b4f41b450df9cf9bd41aac166e',
+                'Authorization': 'Bearer d7ef09b63547679856637d4256d0f7da',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -83,7 +83,7 @@ async function generateKieImage(prompt) {
         for (let i = 0; i < 30; i++) {
             await new Promise(r => setTimeout(r, 4000));
             const pollRes = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
-                headers: { 'Authorization': 'Bearer b47967b4f41b450df9cf9bd41aac166e' }
+                headers: { 'Authorization': 'Bearer d7ef09b63547679856637d4256d0f7da' }
             });
             const pollData = await pollRes.json();
             
